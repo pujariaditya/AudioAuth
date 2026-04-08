@@ -1,0 +1,521 @@
+# AudioAuth Audio Watermarking Configuration
+# Configuration at 16kHz
+# All parameters are required - no hardcoded defaults in code
+
+watermarking:
+  # Core watermarking parameters (REQUIRED - no defaults)
+  nbits: 32  # Number of watermark bits to embed/detect (16 model + 16 data)
+  model_bits: 16  # Number of model watermark bits
+  data_bits: 16  # Number of data watermark bits
+  model_pattern: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]  # Fixed 16-bit pattern for model identification
+  sample_rate: 16000  # System-wide sample rate in Hz (must be consistent across all components)
+  
+  # Phase identifiers for operational modes (REQUIRED - must be unique strings)
+  # These control the behavior of the watermarking forward pass
+  train_phase: "train"  # Phase identifier for training mode (returns 4-tuple)
+  valid_phase: "valid"  # Phase identifier for validation mode (returns dict)
+  audio_sample_phase: "audio_sample"  # Phase identifier for sample generation (returns dict)
+  
+  generator:
+    # Core parameters (ALL REQUIRED - no defaults in code)
+    nbits: 32  # Number of watermark bits (MUST match parent nbits)
+    model_msg_bits: 16  # Number of model watermark bits
+    data_msg_bits: 16  # Number of data watermark bits
+    sample_rate: 16000  # Generator sample rate (MUST match parent sample_rate)
+    channels: 1  # Number of audio channels (mono)
+    
+    # Encoder architecture parameters (REQUIRED)
+    encoder_dim: 64  # Base channel dimension for encoder
+    encoder_rates: [8, 5, 4, 2]  # Downsampling ratios per layer (product = total downsample)
+    encoder_residual_layers: 2  # Number of residual blocks per encoder layer
+    latent_dim: 128  # Dimension of latent representation
+    
+    # Decoder architecture parameters (REQUIRED)
+    decoder_dim: 96  # Base channel dimension for decoder
+    decoder_rates: [8, 5, 4, 2]  # Upsampling ratios per layer (must match encoder_rates)
+    decoder_residual_layers: 3  # Number of residual blocks per decoder layer
+    
+    # Encoder parameters
+    encoder_channels: 1
+    encoder_n_fft_base: 64
+    encoder_activation: ELU
+    encoder_activation_params: {alpha: 1.0}
+    encoder_norm: weight_norm  # Using weight_norm for better stability at 16kHz
+    encoder_norm_params: {}
+    encoder_kernel_size: 5
+    encoder_last_kernel_size: 5
+    encoder_residual_kernel_size: 5
+    encoder_dilation_base: 1
+    encoder_skip: identity
+    encoder_pad_mode: constant
+    encoder_causal: true
+    encoder_act_all: false
+    encoder_expansion: 1
+    encoder_groups: -1
+    encoder_l2norm: true
+    encoder_bias: true
+    encoder_spec: stft
+    encoder_spec_compression: log
+    encoder_spec_learnable: false
+    encoder_res_scale: 0.5773502691896258
+    encoder_wav_std: 0.1122080159
+    encoder_spec_means: [-4.554, -4.315, -4.021, -3.726, -3.477]
+    encoder_spec_stds: [2.830, 2.837, 2.817, 2.796, 2.871]
+    encoder_zero_init: true
+    encoder_inout_norm: true
+
+    # Watermarking-specific encoder parameters
+    encoder_embedding_dim: 64  # Dimension of message embedding
+    encoder_embedding_layers: 2  # Number of layers in embedding MLP
+    encoder_freq_bands: 4  # Number of frequency bands for FiLM conditioning
+
+    # Frequency band configuration for dual watermarks
+    freq_bands: 4  # Number of frequency bands for allocation
+    freq_band_primary_weight: 1.0  # Weight for primary watermark in its assigned bands
+    freq_band_secondary_weight: 1.0  # Weight for secondary watermark in opposite bands
+    freq_band_attenuation: 1.0  # Attenuation factor for secondary watermark (1.0 = no attenuation)
+
+    # Decoder parameters
+    decoder_channels: 1
+    decoder_activation: ELU
+    decoder_activation_params: {alpha: 1.0}
+    decoder_norm: weight_norm  # Using weight_norm for better stability at 16kHz
+    decoder_norm_params: {}
+    decoder_kernel_size: 5
+    decoder_last_kernel_size: 5
+    decoder_residual_kernel_size: 5
+    decoder_dilation_base: 1
+    decoder_skip: identity
+    decoder_pad_mode: constant
+    decoder_causal: true
+    decoder_trim_right_ratio: 1.0
+    decoder_final_activation: Tanh
+    decoder_final_activation_params: {}
+    decoder_act_all: false
+    decoder_expansion: 1
+    decoder_groups: -1
+    decoder_bias: true
+    decoder_res_scale: 0.5773502691896258
+    decoder_wav_std: 0.1122080159
+    decoder_zero_init: true
+    decoder_inout_norm: true
+  
+  detector:
+    # Core parameters (ALL REQUIRED - no defaults in code)
+    nbits: 32  # Number of watermark bits to detect (MUST match parent nbits)
+    model_bits: 16  # Number of model watermark bits to detect
+    data_bits: 16  # Number of data watermark bits to detect
+    sample_rate: 16000  # Detector sample rate (MUST match parent sample_rate)
+    
+    # Architecture parameters (REQUIRED - should match generator encoder for consistency)
+    encoder_dim: 64  # Base channel dimension for encoder
+    encoder_rates: [8, 5, 4, 2]  # Downsampling ratios (should match generator)
+    encoder_residual_layers: 2  # Number of residual blocks per layer
+    latent_dim: 128  # Dimension of encoded representation (should match generator)
+    output_dim: 32  # Dimension for reverse convolution decoder
+    
+    # Detection threshold (REQUIRED - control detection behavior)
+    detection_threshold: 0.5  # Threshold for binarizing detected watermark bits [0,1]
+    
+    # Encoder parameters
+    encoder_channels: 1
+    encoder_n_fft_base: 64
+    encoder_activation: ELU
+    encoder_activation_params: {alpha: 1.0}
+    encoder_norm: weight_norm  # Using weight_norm for better stability at 16kHz
+    encoder_norm_params: {}
+    encoder_kernel_size: 5
+    encoder_last_kernel_size: 5
+    encoder_residual_kernel_size: 5
+    encoder_dilation_base: 1
+    encoder_skip: identity
+    encoder_pad_mode: constant
+    encoder_causal: true
+    encoder_act_all: false
+    encoder_expansion: 1
+    encoder_groups: -1
+    encoder_l2norm: true
+    encoder_bias: true
+    encoder_spec: stft
+    encoder_spec_compression: log
+    encoder_spec_learnable: false
+    encoder_res_scale: 0.5773502691896258
+    encoder_wav_std: 0.1122080159
+    encoder_spec_means: [-4.554, -4.315, -4.021, -3.726, -3.477]
+    encoder_spec_stds: [2.830, 2.837, 2.817, 2.796, 2.871]
+    encoder_zero_init: true
+    encoder_inout_norm: true
+
+  locator:
+    # Core parameters (ALL REQUIRED - no defaults in code)
+    sample_rate: 16000  # Locator sample rate (MUST match parent sample_rate)
+
+    # Architecture parameters (REQUIRED - lightweight configuration for efficiency)
+    encoder_dim: 32  # Base channel dimension for encoder (smaller than generator/detector for efficiency)
+    encoder_rates: [8, 4]  # Downsampling ratios (fewer stages than generator/detector for speed)
+    encoder_residual_layers: 1  # Number of residual blocks per layer
+    latent_dim: 64  # Dimension of encoded representation (should match generator)
+    output_dim: 32  # Dimension for reverse convolution decoder
+    output_channels: 1  # Number of output channels (1 for single-channel watermark detection)
+
+    # Localization-specific parameters (REQUIRED - control localization behavior)
+    localization_threshold: 0.5  # Threshold for watermark presence detection [0,1]
+    
+    # Encoder parameters (matching detector for consistency)
+    encoder_channels: 1
+    encoder_n_fft_base: 64
+    encoder_activation: ELU
+    encoder_activation_params: {alpha: 1.0}
+    encoder_norm: weight_norm  # Using weight_norm for better stability at 16kHz
+    encoder_norm_params: {}
+    encoder_kernel_size: 5
+    encoder_last_kernel_size: 5
+    encoder_residual_kernel_size: 5
+    encoder_dilation_base: 1
+    encoder_skip: identity
+    encoder_pad_mode: constant
+    encoder_causal: true
+    encoder_act_all: false
+    encoder_expansion: 1
+    encoder_groups: -1
+    encoder_l2norm: true
+    encoder_bias: true
+    encoder_spec: stft
+    encoder_spec_compression: log
+    encoder_spec_learnable: false
+    encoder_res_scale: 0.5773502691896258
+    encoder_wav_std: 0.1122080159
+    encoder_spec_means: [-4.554, -4.315, -4.021]
+    encoder_spec_stds: [2.830, 2.837, 2.817]
+    encoder_zero_init: true
+    encoder_inout_norm: true
+  
+  # Phase-specific attacks configuration for training robustness
+  # Training attacks - aggressive for robustness
+  train_attacks:
+    enabled: true  # Enable attacks during training
+    localization:
+      window_duration: 0.1  # Duration of segments for localization (100ms)
+      target_ratio: 0.20  # Target 20% of segments for attacks
+      original_revert_prob: 0.50  # Probability of reverting to original
+      zero_replace_prob: 0.50  # Probability of replacing with zeros
+    sequence:
+      reverse_prob: 0.05  # Probability of reversing audio (reduced - too aggressive)
+      head_trim_prob: 0.60  # Probability of trimming samples from head (NEW - realistic cropping)
+      tail_trim_prob: 0.25  # Probability of trimming samples from tail (NEW - realistic cropping)
+      crop_replacement_prob: 0.0  # Probability of crop replacement (replaces circular shift)
+      shuffle_prob: 0.10  # Probability of shuffling segments (reduced - too aggressive)
+      chunk_shuffle_prob: 0.0  # Probability of chunk shuffle (disabled - too aggressive)
+      segment_duration: 0.5  # Duration for shuffle segments (500ms per paper Section III-A)
+      chunk_divisions: 4  # Number of chunks for chunk shuffle
+      max_trim_ms: 12.0  # Maximum trim duration in milliseconds (addresses ~100 sample issue)
+    effect:
+      effect_enabled:  # Enable/disable individual effects
+        white_noise: false
+        pink_noise: false
+        lowpass: false
+        highpass: false
+        bandpass: false
+        volume: false
+        mp3_compression: false
+        aac_compression: false
+        encodec_compression: false
+        identity: true  # Include identity as baseline for comparison
+      # Compound effect chain configuration (Section III-B)
+      compound_chain_prob: 0.2  # 20% chance of compound distortion chains
+      max_chain_length: 3  # Up to 3 effects applied sequentially
+      # Scheduler configuration for adaptive effect and parameter selection
+      scheduler_config:
+        beta: 0.9              # EMA smoothing factor (higher = more weight on history)
+        ber_threshold: 0.001  # Target BER threshold for successful effects (0.1% - realistic for training)
+        miou_threshold: 0.98  # Target mIoU threshold for successful effects (98% - achievable)
+        temperature_start: 1.0  # Initial softmax temperature (Eq. 1)
+        temperature_end: 0.7  # Final softmax temperature after annealing
+      # Effect parameters with multiple choices for adaptive selection
+      effect_params:
+        white_noise:
+          snr_db:
+            choices: [15.0, 20.0, 25.0, 30.0]  # Multiple SNR options
+        pink_noise:
+          snr_db:
+            choices: [20.0, 25.0, 30.0, 35.0]  # Multiple SNR options
+        lowpass:
+          cutoff_freq:
+            choices: [3000, 4000, 5000, 6000]  # Multiple cutoff options
+        highpass:
+          cutoff_freq:
+            choices: [500, 1000, 1500, 2000]  # Multiple cutoff options
+        bandpass:
+          frequency_pairs:
+            choices: [
+              [200, 3000],   # Telephony band
+              [200, 3400],   # Extended telephony
+              [300, 3000],   # Standard voice
+              [300, 3400],   # Clear voice
+              [300, 4000],   # High-quality voice
+              [500, 3400],   # Reduced bass voice
+              [500, 4000]    # Reduced bass extended
+            ]
+        volume:
+          volume_factor:
+            choices: [0.5, 0.7, 0.9, 1.1]  # Multiple volume scaling options
+        mp3_compression:
+          bitrate:
+            choices: ["32k", "64k", "128k"]
+        aac_compression:
+          bitrate:
+            choices: ["32k", "64k", "128k"]
+        encodec_compression:
+          n_quantizers:
+            choices: [8, 16, 32]
+        identity: {}  # No parameters for identity
+
+  # Validation attacks - same as training for consistent evaluation
+  valid_attacks:
+    enabled: true  # Enable attacks during validation
+    localization:
+      window_duration: 0.1  # Duration of segments for localization (100ms)
+      target_ratio: 0.20  # Target 20% of segments (same as training for consistency)
+      original_revert_prob: 0.50  # Probability of reverting to original
+      zero_replace_prob: 0.50  # Probability of replacing with zeros
+    sequence:
+      reverse_prob: 0.05  # Probability of reversing audio (reduced - too aggressive)
+      head_trim_prob: 0.60  # Probability of trimming samples from head (NEW - realistic cropping)
+      tail_trim_prob: 0.25  # Probability of trimming samples from tail (NEW - realistic cropping)
+      crop_replacement_prob: 0.0  # Probability of crop replacement (replaces circular shift)
+      shuffle_prob: 0.10  # Probability of shuffling segments (reduced - too aggressive)
+      chunk_shuffle_prob: 0.0  # Probability of chunk shuffle (disabled - too aggressive)
+      segment_duration: 0.5  # Duration for shuffle segments (500ms per paper Section III-A)
+      chunk_divisions: 4  # Number of chunks for chunk shuffle
+      max_trim_ms: 12.0  # Maximum trim duration in milliseconds (addresses ~100 sample issue)
+    effect:
+      effect_enabled:  # Enable/disable individual effects
+        white_noise: false
+        pink_noise: false
+        lowpass: false
+        highpass: false
+        bandpass: false
+        volume: false
+        mp3_compression: false
+        aac_compression: false
+        encodec_compression: false
+        identity: true  # Include identity as baseline for comparison
+      # Compound effect chain configuration (Section III-B)
+      compound_chain_prob: 0.0  # Disabled for validation
+      max_chain_length: 3
+      # Scheduler configuration for adaptive effect and parameter selection
+      scheduler_config:
+        beta: 0.9              # EMA smoothing factor (higher = more weight on history)
+        ber_threshold: 0.10    # Success threshold for BER (10% - more realistic for training)
+        miou_threshold: 0.80   # Success threshold for mIoU (80% - achievable during training)
+        temperature_start: 1.0  # Initial softmax temperature (Eq. 1)
+        temperature_end: 0.7  # Final softmax temperature after annealing
+      # Effect parameters with multiple choices for adaptive selection
+      effect_params:
+        white_noise:
+          snr_db:
+            choices: [15.0, 20.0, 25.0, 30.0]  # Multiple SNR options
+        pink_noise:
+          snr_db:
+            choices: [20.0, 25.0, 30.0, 35.0]  # Multiple SNR options
+        lowpass:
+          cutoff_freq:
+            choices: [3000, 4000, 5000, 6000]  # Multiple cutoff options
+        highpass:
+          cutoff_freq:
+            choices: [500, 1000, 1500, 2000]  # Multiple cutoff options
+        bandpass:
+          frequency_pairs:
+            choices: [
+              [200, 3000],   # Telephony band
+              [200, 3400],   # Extended telephony
+              [300, 3000],   # Standard voice
+              [300, 3400],   # Clear voice
+              [300, 4000],   # High-quality voice
+              [500, 3400],   # Reduced bass voice
+              [500, 4000]    # Reduced bass extended
+            ]
+        volume:
+          volume_factor:
+            choices: [0.5, 0.7, 0.9, 1.1]  # Multiple volume scaling options
+        mp3_compression:
+          bitrate:
+            choices: ["32k", "64k", "128k"]
+        aac_compression:
+          bitrate:
+            choices: ["32k", "64k", "128k"]
+        encodec_compression:
+          n_quantizers:
+            choices: [8, 16, 32]
+        identity: {}  # No parameters for identity
+
+discriminator:
+  # Discriminator settings
+  use_discriminator: true
+  discriminator_type: mpd_msd_mrd  # Using original DAC discriminator (MPD + MSD + MRD)
+  # Options: mpd_msd_mrd, mpd_msd, mpd
+  
+  # MPD, MSD, MRD settings (for mpd_msd_mrd type)
+  period_scales: [2, 3, 5, 7, 11]
+  scale_downsample_rates: []  # Empty list disables MSD (like original DAC at 24kHz)
+  # Alternative: [1, 2, 4] for progressive downsampling
+  fft_sizes: [2048, 1024, 512]
+  bands: [[0.0, 0.1], [0.1, 0.25], [0.25, 0.5], [0.5, 0.75], [0.75, 1.0]]
+  sample_rate: 16000
+
+optimizer:
+  # Watermarking system optimizer (unified)
+  optimizer: adamp
+  learning_rate: 5.0e-4
+  betas: [0.8, 0.99]
+  eps: 1.0e-8
+  weight_decay: 0.0
+
+  # Discriminator optimizer
+  d_optimizer: adamp
+  d_learning_rate: 5.0e-4
+  d_betas: [0.8, 0.99]
+  d_eps: 1.0e-8
+  d_weight_decay: 0.0
+
+  # Scheduler
+  scheduler_type: cosine_cyclic
+  warmup_steps: 0
+  warmup_start_lr: 1.0e-6
+  min_lr: 1.0e-5
+  gamma: 0.999996
+
+  # Cosine cyclic scheduler parameters
+  cycle_length: 5000
+  min_lr_factor: 0.5
+  num_cycles: null
+  max_lr: 5.0e-4
+  
+  # Gradient clipping
+  watermarking_grad_clip_norm: 1000.0  # Gradient clipping for watermarking system
+  discriminator_grad_clip_norm: 10.0  # Gradient clipping for discriminator
+
+loss:
+  # Reconstruction losses
+  mel_loss_weight: 20.0
+  mel_loss_params:
+    sample_rate: 16000
+    n_fft: 2048  # Explicit FFT size
+    win_lengths: [32, 64, 128, 256, 512, 1024, 2048]
+    n_mels: [5, 10, 20, 40, 80, 160, 320]
+    pow: 1.0
+    normalized: false
+    eps: 1.0e-5
+    mag_weight: 0.0
+  
+  stft_loss_weight: 0.0  # Not in original lambdas - disabled
+  stft_loss_params:
+    window_lengths: [2048, 512]
+    overlap: 0.75
+    eps: 1.0e-7
+    pow: 2.0  # Explicit power parameter
+    mag_weight: 1.0
+    log_weight: 1.0
+  
+  waveform_loss_weight: 1000.0  # CRITICAL: Enable waveform reconstruction loss
+  
+  # Decoding loss - CRITICAL for message extraction
+  # Must be enabled for watermark to work
+  decoding_loss_weight: 10000.0  # CRITICAL: Highest weight for message accuracy
+  decoding_loss_params:
+    pos_weight: 1.0  # Internal weight multiplier for positive samples
+    neg_weight: 0.0  # Disabled negative sample penalty (no penalty for false positives)
+  
+  # Localization loss - Essential for detecting WHERE watermarks are
+  # Enables sample-level watermark detection with BCE-based approach
+  localization_loss_weight: 100.0  # CRITICAL: Enable watermark localization
+  localization_loss_params:
+    pos_weight: 1.0  # Internal weight multiplier for positive samples
+    neg_weight: 0.0  # Disabled negative sample penalty (no penalty for false positives)
+  
+  # Multi-Scale Mel-Spectrogram loss removed - using single-scale mel loss instead
+
+  # TF Loudness loss - perceptual loudness difference across frequency bands
+  tf_loudness_loss_weight: 1000.0  # TF loudness loss weight
+  tf_loudness_loss_params:
+    num_freq_bands: 10     # Number of frequency bands
+    window_size: 6400      # Size of temporal segments
+    overlap: 1600          # Overlap between segments
+    sample_rate: 16000     # Audio sample rate (must match system)
+
+  # GAN losses
+  use_gan_loss: true
+  adv_gen_loss_weight: 40.0
+  adv_feat_loss_weight: 0.0
+
+metrics:
+  # Audio quality metrics
+  use_sisnr: true
+  sisnr_epsilon: 1.0e-8
+  sisnr_scaling: true
+  
+  use_pesq: true
+  pesq_sample_rate: 16000  # PESQ only supports 8kHz or 16kHz
+  pesq_mode: wb  # wideband mode
+  disable_pesq_resampling: false  # Option to disable PESQ if resampling overhead is too high
+  
+  use_stoi: true
+  stoi_extended: false
+  
+  # Threshold for binarization (used in mIoU computation)
+  iou_threshold: 0.5
+  
+  # Validation metrics to log
+  validation_metrics: [sisnr, pesq, stoi, model_loc_acc, data_loc_acc, model_loc_fpr, data_loc_fpr, model_loc_fnr, data_loc_fnr, model_loc_tpr, data_loc_tpr, model_miou, data_miou, model_ber, data_ber, model_ber_neg, data_ber_neg]
+
+dataset:
+  train_manifest: data/train.jsonl
+  valid_manifest: data/valid.jsonl
+  test_manifest: data/test.jsonl
+  
+  segment_length: 16000  # 1 second at 16kHz
+  num_workers: 0
+  
+  # Validation settings
+  valid_cropping: start
+  test_cropping: start
+
+run:
+  # Basic settings
+  seed: 42
+  output_dir: outputs/stage3  # Stage 3 output directory
+  experiment_name: audioauth
+  debug_gradients: false
+  resume_from: null  # Set to checkpoint path when resuming training
+  
+  # Training settings
+  max_iterations: 1000000
+  batch_size_train: 32
+  batch_size_eval: 32
+  accum_grad_iters: 4
+  
+  # Validation
+  validation_interval: 1000
+  save_audio_samples: true
+  sample_freq: 10000
+  num_audio_samples: 4
+  
+  # Checkpointing
+  checkpoint_interval: 5000
+  checkpoint_keep_last: 5
+  checkpoint_best_metric: valid/loss/total
+  
+  # Logging
+  log_interval: 50
+  wandb_enabled: true
+  wandb_project: audioauth
+  tensorboard_enabled: false
+  
+  # Hardware
+  device: cuda
+  amp: false
+  compile_model: false
+  
+  # Early stopping with proper configuration
+  early_stop_patience: 500000  # Disabled early stopping
+  early_stop_min_delta: 0.001  # Minimum improvement required to reset patience counter

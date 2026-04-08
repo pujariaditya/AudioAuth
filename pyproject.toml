@@ -1,0 +1,104 @@
+[project]
+name = "audioauth"
+version = "1.0.0"
+description = "AudioAuth: A Dual-Watermarking Framework for Robust Audio Integrity and Source Attribution"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "Aditya Pujari"}]
+license = {text = "MIT"}
+keywords = ["audio", "watermarking", "audio-watermarking", "integrity", "source-attribution", "deep-learning"]
+
+dependencies = [
+  "torch>=2.2.2",
+  "torchaudio>=2.2.2",
+  "einops>=0.8.0",
+  "julius>=0.2.8",
+  "librosa>=0.10.0",
+  "numpy>=1.26.4",
+  "pyyaml>=6.0",
+  "scipy>=1.14.0",
+  "soundfile>=0.12.1",
+  "tensorboard>=2.18.0",
+  "tqdm>=4.66.4",
+  "wandb>=0.17.3",
+  "click>=8.1.7",
+  "pesq>=0.0.4",
+  "pystoi>=0.3.3",
+  "resampy>=0.3.1",
+  "pydantic>=2.7.1",
+  "pydantic-settings>=2.7.1",
+  "scikit-learn>=1.3.0",
+  "pyloudnorm>=0.1.1",
+  "pytorch-optimizer>=2.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/pujariaditya/AudioAuth"
+Repository = "https://github.com/pujariaditya/AudioAuth"
+
+[dependency-groups]
+gpu = [
+  "flash-attn @ https://github.com/Dao-AILab/flash-attention/releases/download/v2.5.2/flash_attn-2.5.2+cu118torch2.2cxx11abiFALSE-cp310-cp310-linux_x86_64.whl",
+  "bitsandbytes>=0.43.1",
+]
+dev = [
+  "pre-commit>=4.0.1",
+  "pytest>=7.1.2",
+  "ruff>=0.8.1",
+  "matplotlib>=3.9.0"
+]
+cloud = [
+  "google-cloud-storage>=2.10.0",
+  "boto3>=1.28.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["AudioAuth"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[project.scripts]
+audioauth = "cli:audioauth"
+
+[[tool.uv.index]]
+name = "pytorch-cu118"
+url = "https://download.pytorch.org/whl/cu118"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", marker = "platform_system == 'Darwin'" },
+  { index = "pytorch-cu118", marker = "platform_system == 'Linux'" },
+]
+torchaudio = [
+  { index = "pytorch-cpu", marker = "platform_system == 'Darwin'" },
+  { index = "pytorch-cu118", marker = "platform_system == 'Linux'" },
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint.isort]
+known-third-party = ["wandb"]
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or McCabe
+# complexity (`C901`) by default.
+select = [
+  "E4",
+  "E7",
+  "E9",
+  "F", # Flake8
+  "I", # isort
+]
