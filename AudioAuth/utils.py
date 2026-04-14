@@ -845,41 +845,48 @@ def load_models(
 def load_model_for_inference(
     checkpoint_path: Union[str, Path],
     device: Union[str, torch.device] = "cuda"
-) -> Generator:
+) -> AudioWatermarking:
     """Load model specifically for inference.
-    
+
     Args:
         checkpoint_path: Path to checkpoint
         device: Device to load on
-        
+
     Returns:
-        Model ready for inference
+        AudioWatermarking model ready for inference
     """
     checkpoint_path = Path(checkpoint_path)
     if not checkpoint_path.exists():
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
-    
-    checkpoint = torch.load(checkpoint_path, map_location="cpu")
-    
-    if "config" in checkpoint:
-        if isinstance(checkpoint["config"], dict):
-            if "model" in checkpoint["config"]:
-                config = Config(**checkpoint["config"])
-                model = create_model_from_config(config.model, device)
-            else:
-                full_config = Config(**checkpoint["config"])
-                model = create_model_from_config(full_config, device)
-        else:
-            model = Generator(checkpoint["config"])
-    else:
-        warnings.warn("No config in checkpoint, using default 16kHz config")
-        model = load_16khz_model(device)
-    
+
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+
+    if "config" not in checkpoint:
+        raise KeyError("No config found in checkpoint")
+
+    config_data = checkpoint["config"]
+    if not isinstance(config_data, dict):
+        raise TypeError(f"Expected config to be a dict, got {type(config_data)}")
+
+    def _convert_paths(obj):
+        """Convert PosixPath objects to strings for Pydantic deserialization."""
+        if isinstance(obj, Path):
+            return str(obj)
+        elif isinstance(obj, dict):
+            return {k: _convert_paths(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [_convert_paths(v) for v in obj]
+        return obj
+
+    config_data = _convert_paths(config_data)
+    config = Config(**config_data)
+    model = create_model_from_config(config, device)
+
     if "watermarking_system_state_dict" in checkpoint:
         model.load_state_dict(checkpoint["watermarking_system_state_dict"])
     else:
         raise KeyError("No watermarking_system_state_dict found in checkpoint")
-    
+
     model = model.to(device)
     model.eval()
     return model

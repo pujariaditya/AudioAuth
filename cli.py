@@ -22,6 +22,7 @@ import click
 import torch
 
 from train import main as train_fn
+from infer import run_inference as infer_fn
 
 
 def common_options(f):
@@ -62,7 +63,34 @@ def train(cfg_path, options):
     train_fn(cfg_path=cfg_path, options=options)
 
 
-# Encode and decode commands removed - project now focuses on watermarking instead of codec functionality
+@audioauth.command()
+@click.option("--config", "cfg_path", required=True, type=Path, help="Path to YAML config file")
+@click.option("--checkpoint", required=True, type=Path, help="Path to .pth checkpoint")
+@click.option("--manifest", default=None, type=Path, help="Path to JSONL manifest (defaults to config's test_manifest)")
+@click.option("--output-dir", default="outputs/inference", type=Path, help="Output directory")
+@click.option("--num-samples", default=10, type=int, help="Number of samples to process")
+@click.option("--device", default="cuda", type=str, help="Device (cuda or cpu)")
+@click.option("--max-duration", default=10.0, type=float, help="Max audio duration in seconds")
+@click.option("--seed", default=42, type=int, help="Random seed")
+@click.pass_context
+def encode(ctx, cfg_path, checkpoint, manifest, output_dir, num_samples, device, max_duration, seed):
+    """Generate watermarked audio from a trained checkpoint."""
+    if manifest is None:
+        from AudioAuth.config import Config
+        config = Config.from_yaml(cfg_path)
+        manifest = Path(config.dataset.test_manifest)
+
+    ctx.invoke(
+        infer_fn,
+        config_path=cfg_path,
+        checkpoint_path=checkpoint,
+        manifest_path=manifest,
+        output_dir=output_dir,
+        num_samples=num_samples,
+        device=device,
+        max_duration=max_duration,
+        seed=seed,
+    )
 
 
 if __name__ == "__main__":

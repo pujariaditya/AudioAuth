@@ -78,13 +78,13 @@ For multi-GPU training, use `torchrun --nproc_per_node=N train.py --cfg-path ...
 
 ## Audio Samples
 
-Compare original and watermarked audio — the watermark is imperceptible (SI-SNR ~29 dB).
+Compare original and watermarked audio — the watermark is imperceptible.
 
-| Sample | Original | Watermarked | PESQ | STOI | SI-SNR (dB) |
-|--------|----------|-------------|------|------|--------------|
-| sample_001 | [Play](demo/samples/original/sample_001_original.mp3) | [Play](demo/samples/watermarked/sample_001_watermarked.mp3) | 4.31 | 0.99 | 29.26 |
-| sample_002 | [Play](demo/samples/original/sample_002_original.mp3) | [Play](demo/samples/watermarked/sample_002_watermarked.mp3) | 4.31 | 0.99 | 29.26 |
-| sample_003 | [Play](demo/samples/original/sample_003_original.mp3) | [Play](demo/samples/watermarked/sample_003_watermarked.mp3) | 4.31 | 0.99 | 29.26 |
+| Sample | Original | Watermarked | SI-SNR (dB) |
+|--------|----------|-------------|-------------|
+| sample_001 | [Play](demo/samples/original/sample_001_original.wav) | [Play](demo/samples/watermarked/sample_001_watermarked.wav) | 22.46 |
+| sample_002 | [Play](demo/samples/original/sample_002_original.wav) | [Play](demo/samples/watermarked/sample_002_watermarked.wav) | 21.50 |
+| sample_003 | [Play](demo/samples/original/sample_003_original.wav) | [Play](demo/samples/watermarked/sample_003_watermarked.wav) | 20.00 |
 
 ## Citation
 
