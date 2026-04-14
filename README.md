@@ -89,10 +89,14 @@ Compare original and watermarked audio — the watermark is imperceptible.
 ## Citation
 
 ```bibtex
-@article{pujari2025audioauth,
-  title={AudioAuth: A Dual-Watermarking Framework for Robust Audio Integrity and Source Attribution},
-  author={Pujari, Aditya},
-  year={2025}
+@article{pujari2026audioauth,
+  author    = {Pujari, Aditya and Rattani, Ajita},
+  title     = {AudioAuth: A Dual-Watermarking Framework for Robust Audio Integrity and Source Attribution},
+  journal   = {IEEE Transactions on Biometrics, Behavior, and Identity Science},
+  year      = {2026},
+  month     = {01},
+  pages     = {1-15},
+  doi       = {10.1109/TBIOM.2026.3679274}
 }
 ```
 
